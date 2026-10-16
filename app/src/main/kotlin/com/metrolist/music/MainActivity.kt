@@ -149,6 +149,8 @@ import com.metrolist.music.constants.PauseSearchHistoryKey
 import com.metrolist.music.constants.PreferredLyricsProvider
 import com.metrolist.music.constants.PreferredLyricsProviderKey
 import com.metrolist.music.constants.PureBlackKey
+import com.metrolist.music.constants.DynamicThemeKey
+import com.metrolist.music.constants.SelectedThemeColorKey
 import com.metrolist.music.constants.SYSTEM_DEFAULT
 import com.metrolist.music.constants.SimpMusicMigrationDoneKey
 import com.metrolist.music.constants.SlimNavBarHeight
@@ -573,6 +575,8 @@ class MainActivity : FragmentActivity() {
         val enableLandscapeScaling by rememberPreference(EnableLandscapeScalingKey, defaultValue = false)
         val userDensityScale by rememberPreference(DensityScaleKey, defaultValue = 1f)
         val pureBlackEnabled by rememberPreference(PureBlackKey, defaultValue = false)
+        val dynamicThemeEnabled by rememberPreference(DynamicThemeKey, defaultValue = true)
+        val selectedThemeColor by rememberPreference(SelectedThemeColorKey, defaultValue = 1)
         val pureBlack =
             remember(pureBlackEnabled, useDarkTheme) {
                 pureBlackEnabled && useDarkTheme
@@ -580,14 +584,13 @@ class MainActivity : FragmentActivity() {
 
         val showChangelog = rememberSaveable { mutableStateOf(false) }
 
-        // ReTune uses a fixed monochrome palette. The previous implementation re-derived the whole
-        // theme from the now-playing artwork on every track change, decoding a full-size bitmap per
-        // song into an unbounded cache keyed by thumbnail URL. Nothing below needs to recompute a
-        // colour any more.
+        // Wallpaper colour is supplied by Android; artwork decoding is not required.
 
         MetrolistTheme(
             darkTheme = useDarkTheme,
             pureBlack = pureBlack,
+            dynamicColor = dynamicThemeEnabled,
+            accentColor = selectedThemeColor,
         ) {
             val currentDensity = LocalDensity.current
             val windowInfo = LocalWindowInfo.current

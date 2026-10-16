@@ -66,7 +66,7 @@ fun PlaybackError(
             it.contains("confirm your age", ignoreCase = true) ||
                 it.contains("age-restricted", ignoreCase = true) ||
                 it.contains("LOGIN_REQUIRED", ignoreCase = true) ||
-                it.contains("403", ignoreCase = true)
+                it.contains("sign in to confirm", ignoreCase = true)
         }
     val isJobCancelled =
         rawErrorMessages.any {

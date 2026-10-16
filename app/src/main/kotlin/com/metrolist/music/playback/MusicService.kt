@@ -3259,40 +3259,41 @@ class MusicService :
         }
         Timber.tag(TAG).d("Cleared cached URL after $retryReason (client=$failedStreamClient)")
 
-        if (refreshCipherConfig) {
-            // A rejection can mean the cipher produced a wrong-but-non-throwing signature. If a
-            // rate-limited refresh corrects the table, allow WEB_REMIX again on the next resolution.
-            scope.launch {
-                if (InnerTubeXPlayer.refreshAfterStreamRejection()) {
-                    Timber.tag(TAG).d("Player config changed after stream rejection — restoring WEB_REMIX")
-                    InnerTubeXPlayer.clearWebRemixFailures()
-                }
-            }
-        }
-
-        val retryPosition = player.currentPosition
         val retryIndex = player.currentMediaItemIndex
         val retryPlayWhenReady = player.playWhenReady
         retryJob?.cancel()
-        retryJob =
-            scope.launch {
-                delay(RETRY_DELAY_MS)
-
-                if (player.currentMediaItem?.mediaId != mediaId ||
-                    player.currentMediaItemIndex != retryIndex ||
-                    player.currentPosition != retryPosition ||
-                    player.playWhenReady != retryPlayWhenReady
-                ) {
-                    Timber.tag(TAG).d("Skipping stale retry for $mediaId after $retryReason")
-                    return@launch
+        retryJob = scope.launch {
+            if (refreshCipherConfig) {
+                // Cipher refresh must finish before prepare(), otherwise we can reuse the
+                // signature which the server already rejected.
+                try {
+                    if (InnerTubeXPlayer.refreshAfterStreamRejection()) {
+                        Timber.tag(TAG).d("Player configuration refreshed after stream rejection")
+                        InnerTubeXPlayer.clearWebRemixFailures()
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    Timber.tag(TAG).w(failure, "Cipher refresh failed; trying another stream")
                 }
-
-                retryJob = null
-                player.seekTo(retryIndex, retryPosition)
-                player.prepare()
-
-                Timber.tag(TAG).d("Retrying playback for $mediaId after $retryReason")
             }
+
+            delay(RETRY_DELAY_MS)
+            if (player.currentMediaItem?.mediaId != mediaId ||
+                player.currentMediaItemIndex != retryIndex ||
+                player.playWhenReady != retryPlayWhenReady
+            ) {
+                Timber.tag(TAG).d("Skipping stale retry for $mediaId after $retryReason")
+                return@launch
+            }
+
+            // A user-initiated seek during recovery must not be undone by the retry.
+            val position = player.currentPosition.coerceAtLeast(0L)
+            retryJob = null
+            player.seekTo(retryIndex, position)
+            player.prepare()
+            Timber.tag(TAG).d("Retrying playback for $mediaId after $retryReason")
+        }
     }
 
     /**

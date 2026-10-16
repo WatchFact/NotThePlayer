@@ -41,6 +41,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -377,6 +378,13 @@ fun LoginScreen(
                         painterResource(R.drawable.arrow_back),
                         contentDescription = null,
                     )
+                }
+            },
+            actions = {
+                if (!isSwitchingChannel && loginStage == LoginStage.Authenticating) {
+                    TextButton(onClick = navController::backToMain) {
+                        Text(stringResource(R.string.continue_as_guest))
+                    }
                 }
             },
         )

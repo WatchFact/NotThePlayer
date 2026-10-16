@@ -111,7 +111,7 @@ object InnerTubeXPlayer {
         webRemixFailures.entries.removeIf { (_, failedAt) ->
             now - failedAt !in 0 until WEB_REMIX_FAILURE_TTL_MS
         }
-        if (videoId !in webRemixFailures && webRemixFailures.size >= MAX_WEB_REMIX_FAILURES) {
+        if (!webRemixFailures.containsKey(videoId) && webRemixFailures.size >= MAX_WEB_REMIX_FAILURES) {
             webRemixFailures.entries.minByOrNull { it.value }?.let { oldest ->
                 webRemixFailures.remove(oldest.key, oldest.value)
             }

@@ -34,6 +34,7 @@ import kotlin.time.Clock
 object InnerTubeXPlayer {
     private const val TAG = "InnerTubeXPlayer"
     private const val WEB_REMIX_FAILURE_TTL_MS = 5 * 60 * 1000L
+    private const val MAX_WEB_REMIX_FAILURES = 256
     private const val DEFAULT_STREAM_TTL_SECONDS = 5 * 60
 
     @Volatile
@@ -103,8 +104,19 @@ object InnerTubeXPlayer {
             Result.failure(error)
         }
 
+    @Synchronized
     fun markWebRemixFailed(videoId: String) {
-        webRemixFailures[videoId] = System.currentTimeMillis()
+        val now = System.currentTimeMillis()
+        // Bound this cache during long sessions, removing stale entries first.
+        webRemixFailures.entries.removeIf { (_, failedAt) ->
+            now - failedAt !in 0 until WEB_REMIX_FAILURE_TTL_MS
+        }
+        if (!webRemixFailures.containsKey(videoId) && webRemixFailures.size >= MAX_WEB_REMIX_FAILURES) {
+            webRemixFailures.entries.minByOrNull { it.value }?.let { oldest ->
+                webRemixFailures.remove(oldest.key, oldest.value)
+            }
+        }
+        webRemixFailures[videoId] = now
     }
 
     fun clearWebRemixFailures() {

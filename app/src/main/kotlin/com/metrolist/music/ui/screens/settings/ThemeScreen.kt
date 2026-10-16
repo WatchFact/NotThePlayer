@@ -1,6 +1,7 @@
 package com.metrolist.music.ui.screens.settings
 
 import android.content.res.Configuration
+import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -15,6 +16,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -39,6 +41,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -61,19 +65,15 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.metrolist.music.R
 import com.metrolist.music.constants.DarkModeKey
+import com.metrolist.music.constants.DynamicThemeKey
+import com.metrolist.music.constants.SelectedThemeColorKey
 import com.metrolist.music.constants.PureBlackKey
 import com.metrolist.music.constants.PureBlackMiniPlayerKey
 import com.metrolist.music.ui.theme.MetrolistTheme
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
 
-/**
- * Appearance settings.
- *
- * ReTune dropped the accent-colour picker and the system dynamic palette: the app ships a single
- * monochrome scheme, so the only appearance choices left are light, dark, follow-system and
- * pure black. Keeping a swatch row that could not change anything would be misleading UI.
- */
+/** ReTune appearance controls with Material You and manual accent selection. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThemeScreen(
@@ -226,6 +226,9 @@ fun ThemeControls(
     pureBlack: Boolean,
     onPureBlackChange: (Boolean) -> Unit
 ) {
+    val (dynamicColours, setDynamicColours) = rememberPreference(DynamicThemeKey, defaultValue = true)
+    val (accent, setAccent) = rememberPreference(SelectedThemeColorKey, defaultValue = 1)
+    val supportsWallpaper = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -245,6 +248,51 @@ fun ThemeControls(
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.retune_dynamic_colours),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = stringResource(R.string.retune_dynamic_colours_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = dynamicColours && supportsWallpaper,
+                    enabled = supportsWallpaper,
+                    onCheckedChange = setDynamicColours,
+                )
+            }
+            Text(
+                text = stringResource(R.string.retune_accent_colours),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                listOf(
+                    0 to R.string.retune_accent_monochrome,
+                    1 to R.string.retune_accent_lavender,
+                    2 to R.string.retune_accent_blue,
+                    3 to R.string.retune_accent_mint,
+                    4 to R.string.retune_accent_coral,
+                ).forEach { (index, label) ->
+                    FilterChip(
+                        selected = (!dynamicColours || !supportsWallpaper) && accent == index,
+                        onClick = { setAccent(index); setDynamicColours(false) },
+                        label = { Text(stringResource(label)) },
+                    )
+                }
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -442,9 +490,13 @@ fun ThemeMockup(
         DarkMode.OFF -> false
     }
 
+    val (dynamicColours) = rememberPreference(DynamicThemeKey, defaultValue = true)
+    val (accent) = rememberPreference(SelectedThemeColorKey, defaultValue = 1)
     MetrolistTheme(
         darkTheme = useDark,
-        pureBlack = pureBlack
+        pureBlack = pureBlack,
+        dynamicColor = dynamicColours,
+        accentColor = accent,
     ) {
         Card(
             modifier = Modifier
@@ -547,9 +599,13 @@ fun ThemeMockupPortrait(
         DarkMode.OFF -> false
     }
 
+    val (dynamicColours) = rememberPreference(DynamicThemeKey, defaultValue = true)
+    val (accent) = rememberPreference(SelectedThemeColorKey, defaultValue = 1)
     MetrolistTheme(
         darkTheme = useDark,
-        pureBlack = pureBlack
+        pureBlack = pureBlack,
+        dynamicColor = dynamicColours,
+        accentColor = accent,
     ) {
         Card(
             modifier = Modifier

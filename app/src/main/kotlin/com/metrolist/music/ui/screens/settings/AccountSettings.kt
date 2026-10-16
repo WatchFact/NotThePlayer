@@ -271,7 +271,7 @@ fun AccountSettings(
                             }
 
                             Text(
-                                text = if (isLoggedIn) accountName else stringResource(R.string.login),
+                                text = if (isLoggedIn) accountName else stringResource(R.string.retune_optional_sign_in),
                             )
                         }
                     },

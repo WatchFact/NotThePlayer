@@ -5,9 +5,12 @@
 
 package com.metrolist.music.ui.theme
 
+import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.runtime.Composable
@@ -15,17 +18,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.SaverScope
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 
-/**
- * ReTune ships a single, hand-tuned monochrome palette.
- *
- * Every role in both schemes sits on the same neutral grey axis, so the UI never shifts hue with
- * the wallpaper, the album art or the system palette. Dynamic colour is gone on purpose: it meant
- * re-deriving a full tonal palette (and decoding cover art for it) on every track change, which was
- * both a memory cost and a source of visible flicker.
- */
+/** Neutral ReTune palette: retains accessibility-friendly monochrome fallbacks. */
 private val ReTuneDarkColors: ColorScheme =
     ColorScheme(
         primary = Color(0xFFE8E8E8),
@@ -114,27 +112,66 @@ private val ReTuneLightColors: ColorScheme =
 private val ReTuneShapes = Shapes(
     extraSmall = RoundedCornerShape(4.dp),
     small = RoundedCornerShape(6.dp),
-    medium = RoundedCornerShape(8.dp),
-    large = RoundedCornerShape(12.dp),
-    extraLarge = RoundedCornerShape(16.dp),
+    medium = RoundedCornerShape(12.dp),
+    large = RoundedCornerShape(20.dp),
+    extraLarge = RoundedCornerShape(28.dp),
 )
 
+/** Wallpaper-based Material 3 colours, with manually selectable accessible fallbacks. */
 @Composable
 fun MetrolistTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     pureBlack: Boolean = false,
+    dynamicColor: Boolean = false,
+    accentColor: Int = 0,
     content: @Composable () -> Unit,
 ) {
-    val colorScheme =
-        remember(darkTheme, pureBlack) {
-            val base = if (darkTheme) ReTuneDarkColors else ReTuneLightColors
-            if (darkTheme && pureBlack) base.pureBlack(true) else base
+    val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val colorScheme = remember(darkTheme, pureBlack, dynamicColor, accentColor, configuration, context) {
+        val base = when {
+            dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && darkTheme ->
+                dynamicDarkColorScheme(context)
+            dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+                dynamicLightColorScheme(context)
+            darkTheme -> ReTuneDarkColors.withAccent(accentColor, true)
+            else -> ReTuneLightColors.withAccent(accentColor, false)
         }
+        if (darkTheme && pureBlack) base.pureBlack(true) else base
+    }
+    MaterialTheme(colorScheme = colorScheme, shapes = ReTuneShapes, content = content)
+}
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        shapes = ReTuneShapes,
-        content = content,
+/** A zero-valued accent keeps the original monochrome palette. */
+private fun ColorScheme.withAccent(index: Int, dark: Boolean): ColorScheme {
+    if (index == 0) return this
+    val palette = when (index) {
+        1 -> if (dark) listOf(Color(0xFFD0BCFF), Color(0xFF381E72), Color(0xFF4F378B), Color(0xFFEADDFF))
+             else listOf(Color(0xFF6750A4), Color.White, Color(0xFFEADDFF), Color(0xFF21005D))
+        2 -> if (dark) listOf(Color(0xFFA9C7FF), Color(0xFF00315B), Color(0xFF184A77), Color(0xFFD5E3FF))
+             else listOf(Color(0xFF315F8F), Color.White, Color(0xFFD5E3FF), Color(0xFF001C3B))
+        3 -> if (dark) listOf(Color(0xFF9BD7B8), Color(0xFF003826), Color(0xFF19523B), Color(0xFFB6F2D2))
+             else listOf(Color(0xFF286A4E), Color.White, Color(0xFFB6F2D2), Color(0xFF002114))
+        4 -> if (dark) listOf(Color(0xFFFFB49B), Color(0xFF612B18), Color(0xFF80432D), Color(0xFFFFDBCF))
+             else listOf(Color(0xFF925139), Color.White, Color(0xFFFFDBCF), Color(0xFF371204))
+        else -> return this
+    }
+    val (accent, onAccent, container, onContainer) = palette
+    return copy(
+        primary = accent,
+        onPrimary = onAccent,
+        primaryContainer = container,
+        onPrimaryContainer = onContainer,
+        secondary = accent,
+        onSecondary = onAccent,
+        secondaryContainer = container,
+        onSecondaryContainer = onContainer,
+        tertiary = accent,
+        onTertiary = onAccent,
+        tertiaryContainer = container,
+        onTertiaryContainer = onContainer,
+        inversePrimary = accent,
+        surfaceTint = accent,
     )
 }
 

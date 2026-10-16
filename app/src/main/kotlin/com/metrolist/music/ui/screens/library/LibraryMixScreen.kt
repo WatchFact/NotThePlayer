@@ -162,11 +162,17 @@ fun LibraryMixScreen(
     }
 
     val topSize by viewModel.topValue.collectAsStateWithLifecycle(initialValue = 50)
+    // Stable virtual playlist identities prevent lazy-item churn on every recomposition.
+    val likedPlaylistId = remember { UUID.randomUUID().toString() }
+    val downloadPlaylistId = remember { UUID.randomUUID().toString() }
+    val topPlaylistId = remember { UUID.randomUUID().toString() }
+    val cachedPlaylistId = remember { UUID.randomUUID().toString() }
+    val uploadedPlaylistId = remember { UUID.randomUUID().toString() }
     val likedPlaylist =
         Playlist(
             playlist =
                 PlaylistEntity(
-                    id = UUID.randomUUID().toString(),
+                    id = likedPlaylistId,
                     name = stringResource(R.string.liked),
                 ),
             songCount = 0,
@@ -177,7 +183,7 @@ fun LibraryMixScreen(
         Playlist(
             playlist =
                 PlaylistEntity(
-                    id = UUID.randomUUID().toString(),
+                    id = downloadPlaylistId,
                     name = stringResource(R.string.offline),
                 ),
             songCount = 0,
@@ -188,7 +194,7 @@ fun LibraryMixScreen(
         Playlist(
             playlist =
                 PlaylistEntity(
-                    id = UUID.randomUUID().toString(),
+                    id = topPlaylistId,
                     name = stringResource(R.string.my_top) + " $topSize",
                 ),
             songCount = 0,
@@ -199,7 +205,7 @@ fun LibraryMixScreen(
         Playlist(
             playlist =
                 PlaylistEntity(
-                    id = UUID.randomUUID().toString(),
+                    id = cachedPlaylistId,
                     name = stringResource(R.string.cached_playlist),
                 ),
             songCount = 0,
@@ -210,7 +216,7 @@ fun LibraryMixScreen(
         Playlist(
             playlist =
                 PlaylistEntity(
-                    id = UUID.randomUUID().toString(),
+                    id = uploadedPlaylistId,
                     name = stringResource(R.string.uploaded_playlist),
                 ),
             songCount = 0,

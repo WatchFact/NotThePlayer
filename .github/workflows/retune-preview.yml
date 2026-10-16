@@ -1,0 +1,78 @@
+name: ReTune preview APK
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Prepare Android build
+        run: chmod +x gradlew
+      - name: Restore preview signing key
+        id: keystore
+        uses: actions/cache/restore@v4
+        with:
+          path: app/retune-preview.keystore
+          key: retune-preview-debug-signing-v1
+      - name: Generate signing key when missing
+        if: steps.keystore.outputs.cache-hit != 'true'
+        run: |
+          keytool -genkeypair -keystore app/retune-preview.keystore -storepass android \
+            -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 \
+            -validity 10000 -dname 'CN=ReTune Preview, O=ReTune, C=US'
+      - name: Preserve preview signing key
+        if: steps.keystore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: app/retune-preview.keystore
+          key: retune-preview-debug-signing-v1
+      - name: Unit tests and Android preview APK
+        env:
+          METROLIST_APPLICATION_ID: com.jjdev.retune.preview
+          METROLIST_APP_NAME: ReTune Preview
+          METROLIST_DEBUG_KEYSTORE_PATH: retune-preview.keystore
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
+        run: ./gradlew --console=plain :app:testFossDebugUnitTest :app:assembleFossDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ReTune-preview-apk
+          path: app/build/outputs/apk/foss/debug/*.apk
+          if-no-files-found: error
+
+  publish-preview:
+    if: github.event_name == 'push'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ReTune-preview-apk
+          path: preview
+      - name: Publish successful APK as GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          shopt -s nullglob
+          files=(preview/*.apk)
+          test ${#files[@]} -gt 0
+          gh release create "retune-preview-${GITHUB_RUN_NUMBER}" "${files[@]}" \
+            --target "$GITHUB_SHA" \
+            --title "ReTune Preview #${GITHUB_RUN_NUMBER}" \
+            --notes "Experimental ReTune preview built and tested from main at $GITHUB_SHA. Separate preview package; not a signed stable update." \
+            --prerelease --latest=false

@@ -958,4 +958,15 @@
     <string name="stream_source_web_creator">WEB_CREATOR</string>
     <string name="stream_source_web_creator_desc">Creator web client.</string>
     <string name="continue_as_guest">Continue as guest</string>
+    <!-- ReTune guest access and Expressive appearance -->
+    <string name="retune_dynamic_colours">Wallpaper colours</string>
+    <string name="retune_dynamic_colours_description">Match your Android wallpaper colours on supported devices.</string>
+    <string name="retune_accent_colours">Accent colour</string>
+    <string name="retune_accent_monochrome">Monochrome</string>
+    <string name="retune_accent_lavender">Lavender</string>
+    <string name="retune_accent_blue">Blue</string>
+    <string name="retune_accent_mint">Mint</string>
+    <string name="retune_accent_coral">Coral</string>
+    <string name="retune_optional_sign_in">Sign in (optional)</string>
+    <string name="retune_open_downloads">Open downloads</string>
 </resources>
